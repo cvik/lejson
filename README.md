@@ -4,6 +4,8 @@ Requires R17 since it produces maps on decode. Not yet handling unicode
 code points like "\\uD8B3" (arabic) correctly. Other than that it seem
 to keep with the standard (rfc4627).
 
+Latest Tag: 0.1.0
+
 ## Exports
 
 ```erlang
