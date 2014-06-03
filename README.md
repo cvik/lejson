@@ -4,12 +4,12 @@ Requires R17 since it produces maps on decode. Not yet handling unicode
 code points like "\\uD8B3" (arabic) correctly. Other than that it seem
 to keep with the standard (rfc4627).
 
-Latest Tag: 0.1.0
+Latest Tag: 0.2.0
 
 ## Exports
 
 ```erlang
--spec lejson:decode(iolist()) -> list() | map().
+-spec lejson:decode(iolist()) -> list() | map() | {error, not_json}.
 -spec lejson:encode(list() | map()) -> binary().
 ```
 
