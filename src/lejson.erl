@@ -48,12 +48,17 @@ encode_value(Array) when is_list(Array) -> encode_array(Array).
 
 %% Decode ---------------------------------------------------------------------
 
--spec decode(iolist()) -> list() | map().
+-spec decode(iolist()) -> list() | map() | {error, not_json}.
 decode(Str) when is_binary(Str) ->
     decode(binary_to_list(Str));
 decode(Str) ->
-    Tokens = scan(Str),
-    parse(Tokens).
+    case is_json(Str) of
+        true ->
+            Tokens = scan(Str),
+            parse(Tokens);
+        false ->
+            {error, not_json}
+    end.
 
 scan(Str) ->
     scan(Str, []).
@@ -190,3 +195,9 @@ hex(A,B,C,D) ->
 hex_char(C) when C >= $a, C =< $f -> 10+C-$a;
 hex_char(C) when C >= $A, C =< $F -> 10+C-$A;
 hex_char(N) when N >= $0, N =< $9 -> N-$0.
+
+is_json(<<${, _/binary>>) -> true;
+is_json(<<$[, _/binary>>) -> true;
+is_json([${ | _]) -> true;
+is_json([$[ | _]) -> true;
+is_json(_) -> false.
