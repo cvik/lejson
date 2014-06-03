@@ -7,7 +7,7 @@
 %% for the ordering of object members.
 %%
 %% TODO: Add options to decode that saves the ordering in a special key and
-%%       ensures that if encode finds this special key, it will enforde
+%%       ensures that if encode finds this special key, it will enforce
 %%       that order.
 %% TODO: More strict number parsing.
 %% ----------------------------------------------------------------------------
@@ -17,28 +17,7 @@
 -copyright('Christoffer Vikström <chvi77@gmail.com>').
 
 -export([encode/1, decode/1]).
--export([json/0, test/0, scan/1]).
-
-%% Tests ----------------------------------------------------------------------
-
-json() ->
-    "{\"boolean\": [true, false],"
-    "\"neg_num\": -12,"
-    "\"floats\": [-22.3, -22.3e-12, 22.3E-12, 22.3E+4, 22.3E+4, 22.3E4],"
-    "\"null\": null,"
-    "\"pos_int\": 6789,"
-    "\"string_value\": \"value\","
-    "\"utf_value\": \"\\uC3B8 and \\uc2a9\","
-    "\"arabic\": \"\\uD8B3\\ud8b5\\ud8b8\","
-    "\"array\": [{\"object_inside_array\": 1}],"
-    "\"nested_array\": [[[79]]],"
-    "\"another_array\": [1,2,3,[1,[2],3],12]}".
-
-test() ->
-    Json = json(),
-    Map = decode(Json),
-    NewJson = encode(Map),
-    Map == decode(NewJson).
+-export([scan/1]).
 
 %% Encode ---------------------------------------------------------------------
 
@@ -112,7 +91,6 @@ scan([C|Rest], Res) ->
 scan([], Res) ->
     lists:reverse(Res).
 
-%% TODO: handle \uXXXX
 scan_string(String) ->
     scan_string(String, []).
 
@@ -120,14 +98,14 @@ scan_string([$\\, $"|Rest], Res) ->
     scan_string(Rest, [$", $\\|Res]);
 scan_string([$"|Rest], Res) ->
     {list_to_binary(lists:reverse(Res)), Rest};
-scan_string([$\\,$u,A,B,C,D|Rest], Res) -> %%TODO: finish this case
+scan_string([$\\,$u,A,B,C,D|Rest], Res) ->
     scan_string(Rest, [hex(A,B,C,D)|Res]);
 scan_string([C|Rest], Res) ->
     scan_string(Rest, [C|Res]);
 scan_string([], Res) ->
     {error,  {no_end_of_string, Res}}.
 
-%% TODO: This is a bit flawed, might let malformed floats through
+%% TODO: This is flawed, might let malformed floats through
 scan_number([$-,C|Rest]) when C >= $0, C =< $9 ->
     {NumStr, NewRest} = scan_number([C|Rest], []),
     {to_num([$-|NumStr]), NewRest};

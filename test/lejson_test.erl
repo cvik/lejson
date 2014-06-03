@@ -1,4 +1,4 @@
--module(json_test).
+-module(lejson_test).
 
 -compile(export_all).
 
@@ -9,9 +9,11 @@ config_test_() ->
      fun setup_config/0,
      fun cleanup_config/1,
      {inorder, [ {timeout, 120,
+                  {"encode", fun() -> test_encode({e,n,c}) end}} |
+                [ {timeout, 120,
                   {atom_to_list(Name),
                    fun() -> test_decode(Data) end}} ||
-                  {Name,_,_} = Data <- json_strings_should_pass()]}}.
+                  {Name,_,_} = Data <- json_strings_should_pass()]]}}.
 
 setup_config() -> ok.
 cleanup_config(_) -> ok.
@@ -52,11 +54,11 @@ json_strings_should_pass() ->
       <<"[ { }, { },[]]">>,
       [#{}, #{}, []]},
      {lowercase_unicode_text,
-      <<"{ \"v\":\"\u042e\"}">>,
-      #{<<"v">> => <<"Ю">>}},
+      <<"{ \"v\":\"\\uc3b8 & \\uc2a9\"}">>,
+      #{<<"v">> => <<"ø & ©"/utf8>>}},
      {uppercase_unicode_text,
-      <<"{ \"v\":\"\u042E\"}">>,
-      #{<<"v">> => <<"Ю">>}},
+      <<"{ \"v\":\"\\uC3B8 & \\uC2A9\"}">>,
+      #{<<"v">> => <<"ø & ©"/utf8>>}},
      {non_protected_text,
       <<"{ \"a\":\"hp://foo\"}">>,
       #{<<"a">> => <<"hp://foo">>}},
@@ -78,4 +80,27 @@ json_strings_should_fail() ->
      {truncated_key, "{\"X"}].
 
 test_decode({_Type, Data, Expected}) ->
-    ?assertEqual(Expected, json:decode(Data)).
+    ?assertEqual(Expected, lejson:decode(Data)).
+
+test_encode({_Type, _Data, _Expected}) ->
+    test_encode_decode(simple_json()).
+
+test_encode_decode(Json) ->
+    Map = lejson:decode(Json),
+    NewJson = lejson:encode(Map),
+    Map == lejson:decode(NewJson).
+
+simple_json() ->
+    "{\"boolean\": [true, false],"
+    "\"neg_num\": -12,"
+    "\"floats\": [-22.3, -22.3e-12, 22.3E-12, 22.3E+4, 22.3E+4, 22.3E4],"
+    "\"null\": null,"
+    "\"pos_int\": 6789,"
+    "\"string_value\": \"value\","
+    "\"utf_value\": \"\\uC3B8 and \\uc2a9\","
+    "\"arabic\": \"\\uD8B3\\ud8b5\\ud8b8\","
+    "\"more unicode\": \" \\uD834 \\uDD1E \","
+    "\"array\": [{\"object_inside_array\": 1}],"
+    "\"nested_array\": [[[79]]],"
+    "\"another_array\": [1,2,3,[1,[2],3],12]}".
+
