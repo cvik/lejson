@@ -23,7 +23,7 @@
 
 %% Encode ---------------------------------------------------------------------
 
--spec encode([]|#map{}) -> binary().
+-spec encode([] | map()) -> binary().
 encode(Array) when is_list(Array) ->
     iolist_to_binary(encode_array(Array));
 encode(Map) when is_map(Map) ->
