@@ -9,6 +9,8 @@
 %% TODO: Add options to decode that saves the ordering in a special key and
 %%       ensures that if encode finds this special key, it will enforce
 %%       that order.
+%% TODO: Add options to return iolist instead of binary on encode/1
+%% TODO: Add options to convert keys to atoms on encode/1
 %% TODO: More strict number parsing.
 %% ----------------------------------------------------------------------------
 
@@ -21,6 +23,7 @@
 
 %% Encode ---------------------------------------------------------------------
 
+-spec encode([]|#map{}) -> binary().
 encode(Array) when is_list(Array) ->
     iolist_to_binary(encode_array(Array));
 encode(Map) when is_map(Map) ->
@@ -45,6 +48,7 @@ encode_value(Array) when is_list(Array) -> encode_array(Array).
 
 %% Decode ---------------------------------------------------------------------
 
+-spec decode(iolist()) -> list() | map().
 decode(Str) when is_binary(Str) ->
     decode(binary_to_list(Str));
 decode(Str) ->
