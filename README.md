@@ -6,8 +6,10 @@ to keep with the standard (rfc4627).
 
 ## Exports
 
+```erlang
 -spec lejson:decode(iolist()) -> list() | map().
 -spec lejson:encode(list() | map()) -> binary().
+```
 
 ## Example usage
 
