@@ -42,9 +42,12 @@ encode_value(false) -> "false";
 encode_value(null) -> "null";
 encode_value(Int) when is_integer(Int) -> integer_to_list(Int);
 encode_value(Float) when is_float(Float) -> float_to_list(Float);
-encode_value(Bin) when is_binary(Bin) -> ["\"",Bin,"\""];
+encode_value(Bin) when is_binary(Bin) -> ["\"", escape_string(Bin),"\""];
 encode_value(#{} = Map) -> encode_map(Map);
 encode_value(Array) when is_list(Array) -> encode_array(Array).
+
+escape_string(Bin) ->
+    binary:replace(Bin, <<$">>, <<$\\, $">>, [global]).
 
 %% Decode ---------------------------------------------------------------------
 
