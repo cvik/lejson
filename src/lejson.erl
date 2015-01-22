@@ -34,7 +34,8 @@ encode_array(Array) when is_list(Array) ->
 
 encode_map(Map) when is_map(Map) ->
     Members = maps:to_list(Map),
-    ["{", string:join([ ["\"", Key, "\"", ": ", encode_value(Value)] ||
+    ["{", string:join([ ["\"", encode_key(Key), "\"",
+                         ": ", encode_value(Value)] ||
                         {Key, Value} <- Members ], ","), "}"].
 
 encode_value(true) -> "true";
@@ -45,6 +46,9 @@ encode_value(Float) when is_float(Float) -> float_to_list(Float);
 encode_value(Bin) when is_binary(Bin) -> ["\"", escape_string(Bin),"\""];
 encode_value(#{} = Map) -> encode_map(Map);
 encode_value(Array) when is_list(Array) -> encode_array(Array).
+
+encode_key(Key) when is_atom(Key) -> atom_to_list(Key);
+encode_key(Key) -> Key.
 
 escape_string(Bin) ->
     binary:replace(Bin, <<$">>, <<$\\, $">>, [global]).
