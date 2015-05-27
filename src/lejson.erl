@@ -41,6 +41,7 @@ encode_map(Map) when is_map(Map) ->
 encode_value(true) -> "true";
 encode_value(false) -> "false";
 encode_value(null) -> "null";
+encode_value({{_,_,_}, {_,_,_}} = Dt) -> encode_datetime(Dt);
 encode_value(Int) when is_integer(Int) -> integer_to_list(Int);
 encode_value(Float) when is_float(Float) -> float_to_list(Float);
 encode_value(Bin) when is_binary(Bin) -> ["\"", encode_string(Bin),"\""];
@@ -63,6 +64,11 @@ encode_string([$\r|Rest], Res) -> encode_string(Rest, [$r, $\\|Res]);
 encode_string([$\t|Rest], Res) -> encode_string(Rest, [$t, $\\|Res]);
 encode_string([C|Rest], Res) -> encode_string(Rest, [C|Res]);
 encode_string([], Res) -> lists:reverse(Res).
+
+encode_datetime({{H,M,D},{Hh,Mm,Ss}}) ->
+    TsStr = io_lib:format("~4.4.0w-~2.2.0w-~2.2.0w ~2.2.0w:~2.2.0w:~2.2.0w",
+                          [H, M, D, Hh, Mm, Ss]),
+    ["\"", TsStr, "\""].
 
 %% Decode ---------------------------------------------------------------------
 
