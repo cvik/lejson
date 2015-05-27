@@ -73,7 +73,10 @@ json_strings_should_pass() ->
       #{<<"a">> => false}},
      {double_precision_float,
       <<"{ \"v\":1.7976931348623157E308}">>,
-      #{<<"v">> => 1.7976931348623157e308}}].
+      #{<<"v">> => 1.7976931348623157e308}},
+     {string_with_escape_chars,
+      <<"{\"escaped_string\": \"\\t\\n\\r\\f\\b\\\\\\/\\\"\"}">>,
+      #{<<"escaped_string">> => <<"\t\n\r\f\b\\/\"">>}}].
 
 json_strings_should_fail() ->
     [{truncated_value, "{\"X\":\"s"},
@@ -97,6 +100,7 @@ simple_json() ->
     "\"null\": null,"
     "\"pos_int\": 6789,"
     "\"string_value\": \"value\","
+    "\"string_with_escape_chars\": \"\\t\\n\\r\\f\\b\\\\\\/\\\"\","
     "\"utf_value\": \"\\uC3B8 and \\uc2a9\","
     "\"arabic\": \"\\uD8B3\\ud8b5\\ud8b8\","
     "\"more unicode\": \" \\uD834 \\uDD1E \","

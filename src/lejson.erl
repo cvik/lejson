@@ -10,7 +10,7 @@
 %%       ensures that if encode finds this special key, it will enforce
 %%       that order.
 %% TODO: Add options to return iolist instead of binary on encode/1
-%% TODO: Add options to convert keys to atoms on encode/1
+%% TODO: Add options to convert keys to atoms on decode/1
 %% TODO: More strict number parsing.
 %% ----------------------------------------------------------------------------
 
@@ -43,15 +43,26 @@ encode_value(false) -> "false";
 encode_value(null) -> "null";
 encode_value(Int) when is_integer(Int) -> integer_to_list(Int);
 encode_value(Float) when is_float(Float) -> float_to_list(Float);
-encode_value(Bin) when is_binary(Bin) -> ["\"", escape_string(Bin),"\""];
+encode_value(Bin) when is_binary(Bin) -> ["\"", encode_string(Bin),"\""];
 encode_value(#{} = Map) -> encode_map(Map);
 encode_value(Array) when is_list(Array) -> encode_array(Array).
 
 encode_key(Key) when is_atom(Key) -> atom_to_list(Key);
 encode_key(Key) -> Key.
 
-escape_string(Bin) ->
-    binary:replace(Bin, <<$">>, <<$\\, $">>, [global]).
+encode_string(Bin) when is_binary(Bin) ->
+    iolist_to_binary(encode_string(binary_to_list(Bin), [])).
+
+encode_string([$"|Rest], Res) -> encode_string(Rest, [$", $\\|Res]);
+encode_string([$\\|Rest], Res) -> encode_string(Rest, [$\\, $\\|Res]);
+encode_string([$/|Rest], Res) -> encode_string(Rest, [$/, $\\|Res]);
+encode_string([$\b|Rest], Res) -> encode_string(Rest, [$b, $\\|Res]);
+encode_string([$\f|Rest], Res) -> encode_string(Rest, [$f, $\\|Res]);
+encode_string([$\n|Rest], Res) -> encode_string(Rest, [$n, $\\|Res]);
+encode_string([$\r|Rest], Res) -> encode_string(Rest, [$r, $\\|Res]);
+encode_string([$\t|Rest], Res) -> encode_string(Rest, [$t, $\\|Res]);
+encode_string([C|Rest], Res) -> encode_string(Rest, [C|Res]);
+encode_string([], Res) -> lists:reverse(Res).
 
 %% Decode ---------------------------------------------------------------------
 
@@ -111,7 +122,21 @@ scan_string(String) ->
     scan_string(String, []).
 
 scan_string([$\\, $"|Rest], Res) ->
-    scan_string(Rest, [$", $\\|Res]);
+    scan_string(Rest, [$\"|Res]);
+scan_string([$\\, $\\|Rest], Res) ->
+    scan_string(Rest, [$\\|Res]);
+scan_string([$\\, $/|Rest], Res) ->
+    scan_string(Rest, [$/|Res]);
+scan_string([$\\, $b|Rest], Res) ->
+    scan_string(Rest, [$\b|Res]);
+scan_string([$\\, $f|Rest], Res) ->
+    scan_string(Rest, [$\f|Res]);
+scan_string([$\\, $n|Rest], Res) ->
+    scan_string(Rest, [$\n|Res]);
+scan_string([$\\, $r|Rest], Res) ->
+    scan_string(Rest, [$\r|Res]);
+scan_string([$\\, $t|Rest], Res) ->
+    scan_string(Rest, [$\t|Res]);
 scan_string([$"|Rest], Res) ->
     {list_to_binary(lists:reverse(Res)), Rest};
 scan_string([$\\,$u,A,B,C,D|Rest], Res) ->
