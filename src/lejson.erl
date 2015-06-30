@@ -228,6 +228,8 @@ parse_object([{key, Key}, key_delimiter, begin_array|Rest], Map) ->
 parse_object([end_object|Rest], Map) ->
     {Map, Rest}.
 
+hex($0,$0,A,B) ->
+    [16*hex_char(A)+hex_char(B)];
 hex(A,B,C,D) ->
     [16*hex_char(A)+hex_char(B), 16*hex_char(C)+hex_char(D)].
 
