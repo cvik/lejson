@@ -73,7 +73,7 @@ encode_datetime({{H,M,D},{Hh,Mm,Ss}}) ->
 
 %% Decode ---------------------------------------------------------------------
 
--spec decode(iolist()) -> list() | map() | {error, not_json}.
+-spec decode(string() | binary()) -> list() | map() | {error, not_json}.
 decode(Str) when is_binary(Str) ->
     decode(binary_to_list(Str));
 decode(Str) ->
