@@ -6,11 +6,7 @@
 %% The new json produced will be equivalent with the old, except
 %% for the ordering of object members.
 %%
-%% TODO: Add options to decode that saves the ordering in a special key and
-%%       ensures that if encode finds this special key, it will enforce
-%%       that order.
 %% TODO: Add options to return iolist instead of binary on encode/1
-%% TODO: Add options to convert keys to atoms on decode/1
 %% TODO: More strict number parsing.
 %% ----------------------------------------------------------------------------
 
@@ -18,8 +14,7 @@
 
 -copyright('Christoffer Vikström <chvi77@gmail.com>').
 
--export([encode/1, decode/1]).
--export([scan/1]).
+-export([encode/1, decode/1, decode/2]).
 
 %% Encode ---------------------------------------------------------------------
 
@@ -42,14 +37,14 @@ encode_value(true) -> "true";
 encode_value(false) -> "false";
 encode_value(null) -> "null";
 encode_value({{_,_,_}, {_,_,_}} = Dt) -> encode_datetime(Dt);
-encode_value(Atom) when is_atom(Atom) -> [$", atom_to_list(Atom), $"];
-encode_value(Int) when is_integer(Int) -> integer_to_list(Int);
-encode_value(Float) when is_float(Float) -> float_to_list(Float);
+encode_value(Atom) when is_atom(Atom) -> [$", atom_to_binary(Atom, utf8), $"];
+encode_value(Int) when is_integer(Int) -> [integer_to_binary(Int)];
+encode_value(Float) when is_float(Float) -> [float_to_binary(Float)];
 encode_value(Bin) when is_binary(Bin) -> [$", encode_string(Bin), $"];
 encode_value(#{} = Map) -> encode_map(Map);
 encode_value(Array) when is_list(Array) -> encode_array(Array).
 
-encode_key(Key) when is_atom(Key) -> erlang:atom_to_binary(Key, utf8);
+encode_key(Key) when is_atom(Key) -> atom_to_binary(Key, utf8);
 encode_key(Key) -> Key.
 
 encode_string(Bin) when is_binary(Bin) ->
@@ -74,13 +69,17 @@ encode_datetime({{H,M,D},{Hh,Mm,Ss}}) ->
 %% Decode ---------------------------------------------------------------------
 
 -spec decode(string() | binary()) -> list() | map() | {error, not_json}.
-decode(Str) when is_binary(Str) ->
-    decode(binary_to_list(Str));
 decode(Str) ->
+    decode(Str, #{}).
+
+-spec decode(string() | binary(), map()) -> list() | map() | {error, no_json}.
+decode(Str, Opts) when is_binary(Str) ->
+    decode(binary_to_list(Str), Opts);
+decode(Str, Opts) ->
     case is_json(Str) of
         true ->
             Tokens = scan(Str),
-            parse(Tokens);
+            parse(Tokens, Opts);
         false ->
             {error, not_json}
     end.
@@ -179,53 +178,57 @@ to_num(Str) ->
             list_to_integer(Str)
     end.
 
-parse([begin_object|Rest]) ->
-    {Object, _} = parse_object(Rest, #{}),
+parse([begin_object|Rest], Opts) ->
+    {Object, _} = parse_object(Rest, #{}, Opts),
     Object;
-parse([begin_array|Rest]) ->
-    {Array, _} = parse_array(Rest, []),
+parse([begin_array|Rest], Opts) ->
+    {Array, _} = parse_array(Rest, [], Opts),
     Array.
 
-parse_array([{value,Val}, comma|Rest], Res) ->
-    parse_array(Rest, [Val|Res]);
-parse_array([{value,Val}, end_array|Rest], Res) ->
+parse_array([{value,Val}, comma|Rest], Res, Opts) ->
+    parse_array(Rest, [Val|Res], Opts);
+parse_array([{value,Val}, end_array|Rest], Res, _) ->
     {lists:reverse([Val|Res]), Rest};
-parse_array([begin_object|Rest], Res) ->
-    case parse_object(Rest, #{}) of
+parse_array([begin_object|Rest], Res, Opts) ->
+    case parse_object(Rest, #{}, Opts) of
         {Obj, [comma|NewRest]} ->
-            parse_array(NewRest, [Obj|Res]);
+            parse_array(NewRest, [Obj|Res], Opts);
         {Obj, [end_array|NewRest]} ->
             {lists:reverse([Obj|Res]), NewRest}
     end;
-parse_array([begin_array|Rest], Res) ->
-    case parse_array(Rest, []) of
+parse_array([begin_array|Rest], Res, Opts) ->
+    case parse_array(Rest, [], Opts) of
         {Array, [comma|NewRest]} ->
-            parse_array(NewRest, [Array|Res]);
+            parse_array(NewRest, [Array|Res], Opts);
         {Array, [end_array|NewRest]} ->
             {lists:reverse([Array|Res]), NewRest}
     end;
-parse_array([end_array|Rest], Res) ->
+parse_array([end_array|Rest], Res, _) ->
     {lists:reverse(Res), Rest}.
 
-parse_object([{key,Key},key_delimiter,{value,Val},comma|Rest], Map) ->
-    parse_object(Rest, maps:put(Key, Val, Map));
-parse_object([{key,Key},key_delimiter,{value,Val},end_object|Rest], Map) ->
-    {maps:put(Key, Val, Map), Rest};
-parse_object([{key,Key},key_delimiter,begin_object|Rest], Map) ->
-    case parse_object(Rest, #{}) of
+parse_object([{key,Key},key_delimiter,{value,Val},comma|Rest], Map, Opts) ->
+    NewKey = convert_key(Key, Opts),
+    parse_object(Rest, Map#{NewKey=>Val}, Opts);
+parse_object([{key,Key},key_delimiter,{value,Val},end_object|Rest],Map,Opts) ->
+    NewKey = convert_key(Key, Opts),
+    {Map#{NewKey=>Val}, Rest};
+parse_object([{key,Key},key_delimiter,begin_object|Rest], Map, Opts) ->
+    NewKey = convert_key(Key, Opts),
+    case parse_object(Rest, #{}, Opts) of
         {Obj, [comma|NewRest]} ->
-            parse_object(NewRest, maps:put(Key, Obj, Map));
+            parse_object(NewRest, Map#{NewKey=>Obj}, Opts);
         {Obj, [end_object|NewRest]} ->
-            {maps:put(Key, Obj, Map), NewRest}
+            {Map#{NewKey=>Obj}, NewRest}
     end;
-parse_object([{key, Key}, key_delimiter, begin_array|Rest], Map) ->
-    case parse_array(Rest, []) of
+parse_object([{key, Key}, key_delimiter, begin_array|Rest], Map, Opts) ->
+    NewKey = convert_key(Key, Opts),
+    case parse_array(Rest, [], Opts) of
         {Array, [comma|NewRest]} ->
-            parse_object(NewRest, maps:put(Key, Array, Map));
+            parse_object(NewRest, Map#{NewKey=>Array}, Opts);
         {Array, [end_object|NewRest]} ->
-            {maps:put(Key, Array, Map), NewRest}
+            {Map#{NewKey=>Array}, NewRest}
     end;
-parse_object([end_object|Rest], Map) ->
+parse_object([end_object|Rest], Map, _) ->
     {Map, Rest}.
 
 hex($0,$0,A,B) ->
@@ -242,3 +245,8 @@ is_json(<<$[, _/binary>>) -> true;
 is_json([${ | _]) -> true;
 is_json([$[ | _]) -> true;
 is_json(_) -> false.
+
+convert_key(Key, #{keys:=atom}) -> binary_to_atom(Key, utf8);
+convert_key(Key, #{keys:=existing_atom}) -> binary_to_existing_atom(Key, utf8);
+convert_key(Key, #{keys:=list}) -> binary_to_list(Key);
+convert_key(Key, #{}) -> Key.
