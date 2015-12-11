@@ -25,12 +25,12 @@ encode(Map) when is_map(Map) ->
     iolist_to_binary(encode_map(Map)).
 
 encode_array(Array) when is_list(Array) ->
-    ["[", string:join([ encode_value(V) || V <- Array ], ", "), "]"].
+    ["[", string:join([ encode_value(V) || V <- Array ], ","), "]"].
 
 encode_map(Map) when is_map(Map) ->
     Members = maps:to_list(Map),
     ["{", string:join([ ["\"", encode_key(Key), "\"",
-                         ": ", encode_value(Value)] ||
+                         ":", encode_value(Value)] ||
                         {Key, Value} <- Members ], ","), "}"].
 
 encode_value(true) -> "true";
