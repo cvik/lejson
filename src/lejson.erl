@@ -72,7 +72,7 @@ encode_datetime({{H,M,D},{Hh,Mm,Ss}}) ->
 decode(Str) ->
     decode(Str, #{}).
 
--spec decode(string() | binary(), map()) -> list() | map() | {error, no_json}.
+-spec decode(string() | binary(), map()) -> list() | map() | {error, not_json}.
 decode(Str, Opts) when is_binary(Str) ->
     decode(binary_to_list(Str), Opts);
 decode(Str, Opts) ->
