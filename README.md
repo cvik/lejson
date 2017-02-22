@@ -9,7 +9,7 @@ Latest Tag: 0.5.0
 ## Exports
 
 ```erlang
--spec lejson:decode(iolist()) -> list() | map() | {error, not_json}.
+-spec lejson:decode(string() | binary()) -> list() | map() | {error, not_json}.
 -spec lejson:encode(list() | map()) -> binary().
 ```
 
