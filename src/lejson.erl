@@ -61,9 +61,9 @@ encode_string([$\t|Rest], Res) -> encode_string(Rest, [$t, $\\|Res]);
 encode_string([C|Rest], Res) -> encode_string(Rest, [C|Res]);
 encode_string([], Res) -> lists:reverse(Res).
 
-encode_datetime({{H,M,D},{Hh,Mm,Ss}}) ->
-    TsStr = io_lib:format("~4.4.0w-~2.2.0w-~2.2.0w ~2.2.0w:~2.2.0w:~2.2.0w",
-                          [H, M, D, Hh, Mm, Ss]),
+encode_datetime({{Y,M,D},{Hh,Mm,Ss}}) ->
+    TsStr = io_lib:format("~4.4.0w-~2.2.0w-~2.2.0wT~2.2.0w:~2.2.0w:~2.2.0wZ",
+                          [Y, M, D, Hh, Mm, Ss]),
     ["\"", TsStr, "\""].
 
 %% Decode ---------------------------------------------------------------------
