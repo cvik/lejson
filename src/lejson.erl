@@ -39,7 +39,7 @@ encode_value(null) -> "null";
 encode_value({{_,_,_}, {_,_,_}} = Dt) -> encode_datetime(Dt);
 encode_value(Atom) when is_atom(Atom) -> [$", atom_to_binary(Atom, utf8), $"];
 encode_value(Int) when is_integer(Int) -> [integer_to_binary(Int)];
-encode_value(Float) when is_float(Float) -> [float_to_binary(Float)];
+encode_value(Float) when is_float(Float) -> [io_lib:format("~w", [Float])];
 encode_value(Bin) when is_binary(Bin) -> [$", encode_string(Bin), $"];
 encode_value(#{} = Map) -> encode_map(Map);
 encode_value(Array) when is_list(Array) -> encode_array(Array).
