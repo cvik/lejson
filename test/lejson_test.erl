@@ -1,7 +1,5 @@
 -module(lejson_test).
 
--compile(export_all).
-
 -include_lib("eunit/include/eunit.hrl").
 
 config_test_() ->
@@ -83,10 +81,6 @@ json_strings_should_pass() ->
      {string_with_escape_chars,
       <<"{\"escaped_string\": \"\\t\\n\\r\\f\\b\\\\\\/\\\"\"}">>,
       #{<<"escaped_string">> => <<"\t\n\r\f\b\\/\"">>}}].
-
-json_strings_should_fail() ->
-    [{truncated_value, "{\"X\":\"s"},
-     {truncated_key, "{\"X"}].
 
 test_decode({_Type, Data, Expected}) ->
     ?assertEqual(Expected, lejson:decode(Data)).
