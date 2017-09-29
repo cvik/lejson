@@ -7,3 +7,4 @@ _build
 *.plt
 erl_crash.dump
 TEST-*
+rebar3.crashdump
