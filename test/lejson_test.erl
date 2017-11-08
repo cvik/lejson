@@ -76,7 +76,7 @@ json_strings_should_pass() ->
       <<"{ \"a\" : false }">>,
       #{<<"a">> => false}},
      {double_precision_float,
-      <<"{ \"v\":1.7976931348623157E308}">>,
+      <<"{\"v\":1.7976931348623157E308}">>,
       #{<<"v">> => 1.7976931348623157e308}},
      {string_with_escape_chars,
       <<"{\"escaped_string\": \"\\t\\n\\r\\f\\b\\\\\\/\\\"\"}">>,
@@ -94,17 +94,17 @@ test_encode_decode(Json) ->
     Map == lejson:decode(NewJson).
 
 simple_json() ->
-    "{\"boolean\": [true, false],"
-    "\"neg_num\": -12,"
-    "\"floats\": [-22.3, -22.3e-12, 22.3E-12, 22.3E+4, 22.3E+4, 22.3E4],"
-    "\"null\": null,"
-    "\"pos_int\": 6789,"
-    "\"string_value\": \"value\","
-    "\"string_with_escape_chars\": \"\\t\\n\\r\\f\\b\\\\\\/\\\"\","
-    "\"utf_value\": \"\\uC3B8 and \\uc2a9\","
-    "\"arabic\": \"\\uD8B3\\ud8b5\\ud8b8\","
-    "\"more unicode\": \" \\uD834 \\uDD1E \","
-    "\"array\": [{\"object_inside_array\": 1}],"
-    "\"nested_array\": [[[79]]],"
-    "\"another_array\": [1,2,3,[1,[2],3],12]}".
+    <<"{\"boolean\": [true, false],"
+      "\"neg_num\": -12,"
+      "\"floats\": [-22.3, -22.3e-12, 22.3E-12, 22.3E+4, 22.3E+4, 22.3E4],"
+      "\"null\": null,"
+      "\"pos_int\": 6789,"
+      "\"string_value\": \"value\","
+      "\"string_with_escape_chars\": \"\\t\\n\\r\\f\\b\\\\\\/\\\"\","
+      "\"utf_value\": \"\\uC3B8 and \\uc2a9\","
+      "\"arabic\": \"\\uD8B3\\ud8b5\\ud8b8\","
+      "\"more unicode\": \" \\uD834 \\uDD1E \","
+      "\"array\": [{\"object_inside_array\": 1}],"
+      "\"nested_array\": [[[79]]],"
+      "\"another_array\": [1,2,3,[1,[2],3],12]}">>.
 

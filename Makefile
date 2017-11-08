@@ -1,6 +1,6 @@
 .PHONY: all compile xref dialyzer test
 
-all: compile test
+all: xref
 
 compile:
 	@rebar3 compile
@@ -11,8 +11,10 @@ xref:
 dialyzer:
 	@rebar3 dialyzer
 
-test: xref
+tests:
 	@rebar3 eunit
+
+test: clean xref tests dialyzer
 
 clean:
 	@rebar3 clean

@@ -68,17 +68,15 @@ encode_datetime({{Y,M,D},{Hh,Mm,Ss}}) ->
 
 %% Decode ---------------------------------------------------------------------
 
--spec decode(string() | binary()) -> list() | map() | {error, not_json}.
-decode(Str) ->
-    decode(Str, #{}).
+-spec decode(binary()) -> list() | map() | {error, not_json}.
+decode(Bin) ->
+    decode(Bin, #{}).
 
--spec decode(string() | binary(), map()) -> list() | map() | {error, not_json}.
-decode(Str, Opts) when is_binary(Str) ->
-    decode(binary_to_list(Str), Opts);
-decode(Str, Opts) ->
-    case is_json(Str) of
+-spec decode(binary(), map()) -> list() | map() | {error, not_json}.
+decode(Bin, Opts) ->
+    case is_json(Bin) of
         true ->
-            Tokens = scan(Str),
+            Tokens = scan(Bin),
             parse(Tokens, Opts);
         false ->
             {error, not_json}
@@ -87,88 +85,86 @@ decode(Str, Opts) ->
 scan(Str) ->
     scan(Str, []).
 
-scan([${|Rest], Res) ->
+scan(<<${, Rest/binary>>, Res) ->
     scan(Rest, [begin_object|Res]);
-scan([$}|Rest], Res) ->
+scan(<<$}, Rest/binary>>, Res) ->
     scan(Rest, [end_object|Res]);
-scan([$:|Rest], [{value,Str}|Res]) when is_binary(Str) ->
+scan(<<$:, Rest/binary>>, [{value,Str}|Res]) when is_binary(Str) ->
     scan(Rest, [key_delimiter, {key, Str}|Res]);
-scan([$[|Rest], Res) ->
+scan(<<$[, Rest/binary>>, Res) ->
     scan(Rest, [begin_array|Res]);
-scan([$]|Rest], Res) ->
+scan(<<$], Rest/binary>>, Res) ->
     scan(Rest, [end_array|Res]);
-scan([$"|Rest], Res) ->
+scan(<<$", Rest/binary>>, Res) ->
     {String, NewRest} = scan_string(Rest),
     scan(NewRest, [{value, String}|Res]);
-scan([$,|Rest], Res) ->
+scan(<<$,, Rest/binary>>, Res) ->
     scan(Rest, [comma|Res]);
-scan([$t,$r,$u,$e|Rest], Res) ->
+scan(<<$t,$r,$u,$e, Rest/binary>>, Res) ->
     scan(Rest, [{value, true}|Res]);
-scan([$f,$a,$l,$s,$e|Rest], Res) ->
+scan(<<$f,$a,$l,$s,$e, Rest/binary>>, Res) ->
     scan(Rest, [{value, false}|Res]);
-scan([$n,$u,$l,$l|Rest], Res) ->
+scan(<<$n,$u,$l,$l, Rest/binary>>, Res) ->
     scan(Rest, [{value, null}|Res]);
-scan([C|_]=Rest, Res) when C >= $0, C =< $9; C == $- ->
+scan(<<C, _/binary>> = Rest, Res) when C >= $0, C =< $9; C == $-; C == $+ ->
     {Num, NewRest} = scan_number(Rest),
     scan(NewRest, [{value, Num}|Res]);
-scan([$ |Rest], Res) ->
+scan(<<$ , Rest/binary>>, Res) ->
     scan(Rest, Res);
-scan([$\n|Rest], Res) ->
+scan(<<$\n, Rest/binary>>, Res) ->
     scan(Rest, Res);
-scan([$\t|Rest], Res) ->
+scan(<<$\t, Rest/binary>>, Res) ->
     scan(Rest, Res);
-scan([$\r|Rest], Res) ->
+scan(<<$\r, Rest/binary>>, Res) ->
     scan(Rest, Res);
-scan([C|Rest], Res) ->
+scan(<<C, Rest/binary>>, Res) ->
     scan(Rest, [C|Res]);
-scan([], Res) ->
+scan(<<>>, Res) ->
     lists:reverse(Res).
 
 scan_string(String) ->
     scan_string(String, []).
 
-scan_string([$\\, $"|Rest], Res) ->
+scan_string(<<$\\, $", Rest/binary>>, Res) ->
     scan_string(Rest, [$\"|Res]);
-scan_string([$\\, $\\|Rest], Res) ->
+scan_string(<<$\\, $\\, Rest/binary>>, Res) ->
     scan_string(Rest, [$\\|Res]);
-scan_string([$\\, $/|Rest], Res) ->
+scan_string(<<$\\, $/, Rest/binary>>, Res) ->
     scan_string(Rest, [$/|Res]);
-scan_string([$\\, $b|Rest], Res) ->
+scan_string(<<$\\, $b, Rest/binary>>, Res) ->
     scan_string(Rest, [$\b|Res]);
-scan_string([$\\, $f|Rest], Res) ->
+scan_string(<<$\\, $f, Rest/binary>>, Res) ->
     scan_string(Rest, [$\f|Res]);
-scan_string([$\\, $n|Rest], Res) ->
+scan_string(<<$\\, $n, Rest/binary>>, Res) ->
     scan_string(Rest, [$\n|Res]);
-scan_string([$\\, $r|Rest], Res) ->
+scan_string(<<$\\, $r, Rest/binary>>, Res) ->
     scan_string(Rest, [$\r|Res]);
-scan_string([$\\, $t|Rest], Res) ->
+scan_string(<<$\\, $t, Rest/binary>>, Res) ->
     scan_string(Rest, [$\t|Res]);
-scan_string([$"|Rest], Res) ->
+scan_string(<<$", Rest/binary>>, Res) ->
     {list_to_binary(lists:reverse(Res)), Rest};
-scan_string([$\\,$u,A,B,C,D|Rest], Res) ->
+scan_string(<<$\\,$u,A,B,C,D,Rest/binary>>, Res) ->
     scan_string(Rest, [hex(A,B,C,D)|Res]);
-scan_string([C|Rest], Res) ->
+scan_string(<<C, Rest/binary>>, Res) ->
     scan_string(Rest, [C|Res]);
-scan_string([], Res) ->
+scan_string(<<>>, Res) ->
     {error,  {no_end_of_string, Res}}.
 
 %% TODO: This is flawed, might let malformed floats through
-scan_number([$-,C|Rest]) when C >= $0, C =< $9 ->
-    {NumStr, NewRest} = scan_number([C|Rest], []),
+scan_number(<<$-,C, Rest/binary>>) when C >= $0 andalso C =< $9 ->
+    {NumStr, NewRest} = scan_number(<<C, Rest/binary>>, []),
     {to_num([$-|NumStr]), NewRest};
-scan_number([C|Rest]) when C >= $0, C =< $9 ->
-    {NumStr, NewRest} = scan_number([C|Rest], []),
+scan_number(<<C, Rest/binary>>) when C >= $0 andalso C =< $9 ->
+    {NumStr, NewRest} = scan_number(<<C, Rest/binary>>, []),
     {to_num(NumStr), NewRest}.
 
-scan_number([C|Rest], Res) when C >= $0, C =< $9;
-                                C == $-; C == $.;
-                                C == $e; C == $E;
-                                C == $+; C == $- ->
+scan_number(<<C, Rest/binary>>, Res) when C >= $0, C =< $9;
+                                          C == $.;
+                                          C == $+; C == $-;
+                                          C == $e; C == $E ->
     scan_number(Rest, [C|Res]);
-scan_number([_|_]=Rest, Res) ->
-    {lists:reverse(Res), Rest};
-scan_number([], Res) ->
-    {error,  {no_end_of_num, Res}}.
+scan_number(Rest, Res) ->
+    {lists:reverse(Res), Rest}.
 
 to_num(Str) ->
     case lists:member($., Str) of
