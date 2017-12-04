@@ -7,7 +7,7 @@ to keep with the standard (rfc4627).
 ## Exports
 
 ```erlang
--spec lejson:decode(string() | binary()) -> list() | map() | {error, not_json}.
+-spec lejson:decode(binary()) -> list() | map() | {error, not_json}.
 -spec lejson:encode(list() | map()) -> binary().
 ```
 
