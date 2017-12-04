@@ -238,8 +238,6 @@ hex_char(N) when N >= $0, N =< $9 -> N-$0.
 
 is_json(<<${, _/binary>>) -> true;
 is_json(<<$[, _/binary>>) -> true;
-is_json([${ | _]) -> true;
-is_json([$[ | _]) -> true;
 is_json(_) -> false.
 
 convert_key(Key, #{keys:=atom}) -> binary_to_atom(Key, utf8);
