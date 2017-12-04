@@ -1,6 +1,6 @@
 {application, lejson,
  [{description, "Lightweight Erlang json encode/decode library"},
-  {vsn, "0.6.2"},
+  {vsn, "0.6.3"},
   {registered, []},
   {applications, [kernel,
                   stdlib
