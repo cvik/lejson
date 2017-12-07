@@ -68,12 +68,13 @@ encode_datetime({{Y,M,D},{Hh,Mm,Ss}}) ->
 
 %% Decode ---------------------------------------------------------------------
 
--spec decode(binary()) -> list() | map() | {error, not_json}.
-decode(Bin) ->
-    decode(Bin, #{}).
+-spec decode(iodata()) -> list() | map() | {error, not_json}.
+decode(IOData) ->
+    decode(IOData, #{}).
 
--spec decode(binary(), map()) -> list() | map() | {error, not_json}.
-decode(Bin, Opts) ->
+-spec decode(iodata(), map()) -> list() | map() | {error, not_json}.
+decode(IOData, Opts) ->
+    Bin = iolist_to_binary(IOData),
     case is_json(Bin) of
         true ->
             Tokens = scan(Bin),
