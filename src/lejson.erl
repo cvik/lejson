@@ -84,88 +84,92 @@ decode(IOData, Opts) ->
     end.
 
 scan(Str) ->
-    scan(Str, []).
+    scan(Str, 0, size(Str), []).
 
-scan(<<${, Rest/binary>>, Res) ->
-    scan(Rest, [begin_object|Res]);
-scan(<<$}, Rest/binary>>, Res) ->
-    scan(Rest, [end_object|Res]);
-scan(<<$:, Rest/binary>>, [{value,Str}|Res]) when is_binary(Str) ->
-    scan(Rest, [key_delimiter, {key, Str}|Res]);
-scan(<<$[, Rest/binary>>, Res) ->
-    scan(Rest, [begin_array|Res]);
-scan(<<$], Rest/binary>>, Res) ->
-    scan(Rest, [end_array|Res]);
-scan(<<$", Rest/binary>>, Res) ->
-    {String, NewRest} = scan_string(Rest),
-    scan(NewRest, [{value, String}|Res]);
-scan(<<$,, Rest/binary>>, Res) ->
-    scan(Rest, [comma|Res]);
-scan(<<$t,$r,$u,$e, Rest/binary>>, Res) ->
-    scan(Rest, [{value, true}|Res]);
-scan(<<$f,$a,$l,$s,$e, Rest/binary>>, Res) ->
-    scan(Rest, [{value, false}|Res]);
-scan(<<$n,$u,$l,$l, Rest/binary>>, Res) ->
-    scan(Rest, [{value, null}|Res]);
-scan(<<C, _/binary>> = Rest, Res) when C >= $0, C =< $9; C == $-; C == $+ ->
-    {Num, NewRest} = scan_number(Rest),
-    scan(NewRest, [{value, Num}|Res]);
-scan(<<$ , Rest/binary>>, Res) ->
-    scan(Rest, Res);
-scan(<<$\n, Rest/binary>>, Res) ->
-    scan(Rest, Res);
-scan(<<$\t, Rest/binary>>, Res) ->
-    scan(Rest, Res);
-scan(<<$\r, Rest/binary>>, Res) ->
-    scan(Rest, Res);
-scan(<<C, Rest/binary>>, Res) ->
-    scan(Rest, [C|Res]);
-scan(<<>>, Res) ->
-    lists:reverse(Res).
+scan(_Bin, Pos, Len, Res) when Pos == Len ->
+    lists:reverse(Res);
+scan(Bin, Pos, Len, Res) ->
+    scan(binary:at(Bin, Pos), Bin, Pos, Len, Res).
 
-scan_string(String) ->
-    scan_string(String, []).
+scan(${, Bin, Pos, Len, Res) ->
+    scan(Bin, Pos + 1, Len, [begin_object|Res]);
+scan($}, Bin, Pos, Len, Res) ->
+    scan(Bin, Pos + 1, Len, [end_object|Res]);
+scan($:, Bin, Pos, Len, [{value,Str}|Res]) when is_binary(Str) ->
+    scan(Bin, Pos + 1, Len, [key_delimiter, {key, Str}|Res]);
+scan($[,  Bin, Pos, Len, Res) ->
+    scan(Bin, Pos + 1, Len, [begin_array|Res]);
+scan($], Bin, Pos, Len, Res) ->
+    scan(Bin, Pos + 1, Len, [end_array|Res]);
+scan($", Bin, Pos, Len, Res) ->
+    {String, NewPos} = scan_string(Bin, Pos + 1),
+    scan(Bin, NewPos, Len, [{value, String}|Res]);
+scan($,, Bin, Pos, Len, Res) ->
+    scan(Bin, Pos + 1, Len, [comma|Res]);
+scan(C, Bin, Pos, Len, Res) when C >= $0, C =< $9; C == $-; C == $+ ->
+    {Num, NewPos} = scan_number(Bin, Pos),
+    scan(Bin, NewPos, Len, [{value, Num}|Res]);
+scan(C, Bin, Pos, Len, Res) when C == $ ; C == $\n; C == $\t; C == $\r ->
+    scan(Bin, Pos + 1, Len, Res);
+scan(C, Bin, Pos, Len, Res) ->
+    case Bin of
+        <<_:Pos/binary, $t, $r, $u, $e, _/binary>> ->
+            scan(Bin, Pos + 4, Len, [{value, true}|Res]);
+        <<_:Pos/binary, $f, $a, $l, $s, $e, _/binary>> ->
+            scan(Bin, Pos + 5, Len, [{value, false}|Res]);
+        <<_:Pos/binary, $n, $u, $l, $l, _/binary>> ->
+            scan(Bin, Pos + 4, Len, [{value, null}|Res]);
+        _ ->
+            scan(Bin, Pos + 1, Len, [C | Res])
+    end.
 
-scan_string(<<$\\, $", Rest/binary>>, Res) ->
-    scan_string(Rest, [$\"|Res]);
-scan_string(<<$\\, $\\, Rest/binary>>, Res) ->
-    scan_string(Rest, [$\\|Res]);
-scan_string(<<$\\, $/, Rest/binary>>, Res) ->
-    scan_string(Rest, [$/|Res]);
-scan_string(<<$\\, $b, Rest/binary>>, Res) ->
-    scan_string(Rest, [$\b|Res]);
-scan_string(<<$\\, $f, Rest/binary>>, Res) ->
-    scan_string(Rest, [$\f|Res]);
-scan_string(<<$\\, $n, Rest/binary>>, Res) ->
-    scan_string(Rest, [$\n|Res]);
-scan_string(<<$\\, $r, Rest/binary>>, Res) ->
-    scan_string(Rest, [$\r|Res]);
-scan_string(<<$\\, $t, Rest/binary>>, Res) ->
-    scan_string(Rest, [$\t|Res]);
-scan_string(<<$", Rest/binary>>, Res) ->
-    {list_to_binary(lists:reverse(Res)), Rest};
-scan_string(<<$\\,$u,A,B,C,D,Rest/binary>>, Res) ->
-    scan_string(Rest, [hex(A,B,C,D)|Res]);
-scan_string(<<C, Rest/binary>>, Res) ->
-    scan_string(Rest, [C|Res]);
-scan_string(<<>>, Res) ->
-    {error,  {no_end_of_string, Res}}.
+scan_string(String, Pos) ->
+    scan_string(String, Pos, []).
 
-%% TODO: This is flawed, might let malformed floats through
-scan_number(<<$-,C, Rest/binary>>) when C >= $0 andalso C =< $9 ->
-    {NumStr, NewRest} = scan_number(<<C, Rest/binary>>, []),
-    {to_num([$-|NumStr]), NewRest};
-scan_number(<<C, Rest/binary>>) when C >= $0 andalso C =< $9 ->
-    {NumStr, NewRest} = scan_number(<<C, Rest/binary>>, []),
-    {to_num(NumStr), NewRest}.
+scan_string(String, Pos, Res) ->
+    scan_string(binary:at(String, Pos), String, Pos, Res).
 
-scan_number(<<C, Rest/binary>>, Res) when C >= $0, C =< $9;
-                                          C == $.;
-                                          C == $+; C == $-;
-                                          C == $e; C == $E ->
-    scan_number(Rest, [C|Res]);
-scan_number(Rest, Res) ->
-    {lists:reverse(Res), Rest}.
+scan_string($\\, String, Pos, Res) ->
+    case binary:at(String, Pos + 1) of
+        $" ->
+            scan_string(String, Pos + 2, [$" | Res]);
+        $\\ ->
+            scan_string(String, Pos + 2, [$\\ | Res]);
+        $/ ->
+            scan_string(String, Pos + 2, [$/ | Res]);
+        $b ->
+            scan_string(String, Pos + 2, [$\b | Res]);
+        $f ->
+            scan_string(String, Pos + 2, [$\f | Res]);
+        $n ->
+            scan_string(String, Pos + 2, [$\n | Res]);
+        $r ->
+            scan_string(String, Pos + 2, [$\r | Res]);
+        $t ->
+            scan_string(String, Pos + 2, [$\t | Res]);
+        $u ->
+            <<_:Pos/binary, $\\, $u, A, B, C, D, _/binary>> = String,
+            scan_string(String, Pos + 6, [hex(A, B, C, D) | Res])
+    end;
+scan_string($", _String, Pos, Res) ->
+    {list_to_binary(lists:reverse(Res)), Pos + 1};
+scan_string(C, String, Pos, Res) ->
+    scan_string(String, Pos + 1, [C | Res]).
+
+scan_number(String, Pos) ->
+    scan_number(String, Pos, []).
+
+scan_number(String, Pos, Res) ->
+    scan_number(binary:at(String, Pos), String, Pos, Res).
+
+
+scan_number(C, String, Pos, Res) when C >= $0, C =< $9;
+                                       C == $.;
+                                       C == $+; C == $-;
+                                       C == $e; C == $E ->
+    scan_number(String, Pos + 1, [C | Res]);
+scan_number(_, _String, Pos, Res) ->
+    {to_num(lists:reverse(Res)), Pos}.
 
 to_num(Str) ->
     case lists:member($., Str) of
