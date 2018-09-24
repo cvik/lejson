@@ -16,13 +16,20 @@
 
 -export([encode/1, decode/1, decode/2]).
 
+%% Types ----------------------------------------------------------------------
+
+-type json_key()    :: atom() | string() | binary().
+-type json_value()  :: boolean() | 'null' | calendar:datetime() | atom()
+                     | number() | binary() | json_object() | json_array().
+-type json_object() :: #{json_key() => json_value()}.
+-type json_array()  :: [json_value()].
+-type json_opts()   :: #{'keys' => 'atom' | 'existing_atom' | 'list'}.
+
 %% Encode ---------------------------------------------------------------------
 
--spec encode([] | map()) -> binary().
-encode(Array) when is_list(Array) ->
-    iolist_to_binary(encode_array(Array));
-encode(Map) when is_map(Map) ->
-    iolist_to_binary(encode_map(Map)).
+-spec encode(json_value()) -> binary().
+encode(Value) ->
+    iolist_to_binary(encode_value(Value)).
 
 encode_array(Array) when is_list(Array) ->
     ["[", string:join([ encode_value(V) || V <- Array ], ","), "]"].
@@ -68,11 +75,12 @@ encode_datetime({{Y,M,D},{Hh,Mm,Ss}}) ->
 
 %% Decode ---------------------------------------------------------------------
 
--spec decode(iodata()) -> list() | map() | {error, not_json}.
+-spec decode(iodata()) -> json_object() | json_array() | {error, not_json}.
 decode(IOData) ->
     decode(IOData, #{}).
 
--spec decode(iodata(), map()) -> list() | map() | {error, not_json}.
+-spec decode(iodata(), json_opts()) ->
+                    json_object() | json_array() | {error, not_json}.
 decode(IOData, Opts) ->
     Bin = iolist_to_binary(IOData),
     case is_json(Bin) of
@@ -241,6 +249,7 @@ hex_char(C) when C >= $a, C =< $f -> 10+C-$a;
 hex_char(C) when C >= $A, C =< $F -> 10+C-$A;
 hex_char(N) when N >= $0, N =< $9 -> N-$0.
 
+%% TODO rfc8259 compatibility
 is_json(<<${, _/binary>>) -> true;
 is_json(<<$[, _/binary>>) -> true;
 is_json(_) -> false.

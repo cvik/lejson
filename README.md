@@ -2,13 +2,23 @@
 
 Requires R17 since it produces maps on decode. Not yet handling unicode
 code points like "\\uD8B3" (arabic) correctly. Other than that it seem
-to keep with the standard (rfc4627).
+to keep with the standard (rfc4627). Encoding is also compatible with rfc8259.
 
 ## Exports
 
 ```erlang
--spec lejson:decode(binary()) -> list() | map() | {error, not_json}.
--spec lejson:encode(list() | map()) -> binary().
+-type json_key()    :: atom() | string() | binary().
+-type json_value()  :: boolean() | 'null' | calendar:datetime() | atom()
+                     | number() | binary() | json_object() | json_array().
+-type json_object() :: #{json_key() => json_value()}.
+-type json_array()  :: [json_value()].
+-type json_opts()   :: #{'keys' => 'atom' | 'existing_atom' | 'list'}.
+
+-spec lejson:decode(iodata()) -> json_object() | json_array() | {error, not_json}.
+-spec lejson:decode(iodata(), json_opts()) ->
+                    json_object() | json_array() | {error, not_json}.
+
+-spec lejson:encode(json_value()) -> binary().
 ```
 
 ## Example usage
