@@ -257,4 +257,9 @@ is_json(_) -> false.
 convert_key(Key, #{keys:=atom}) -> binary_to_atom(Key, utf8);
 convert_key(Key, #{keys:=existing_atom}) -> binary_to_existing_atom(Key, utf8);
 convert_key(Key, #{keys:=list}) -> binary_to_list(Key);
+convert_key(Key, #{keys:=integer_and_atom}) ->
+    try binary_to_integer(Key)
+    catch
+        _:_ -> binary_to_atom(Key, utf8)
+    end;
 convert_key(Key, #{}) -> Key.
