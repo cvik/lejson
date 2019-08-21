@@ -52,6 +52,7 @@ encode_value(#{} = Map) -> encode_map(Map);
 encode_value(Array) when is_list(Array) -> encode_array(Array).
 
 encode_key(Key) when is_atom(Key) -> atom_to_binary(Key, utf8);
+encode_key(Key) when is_integer(Key) -> integer_to_binary(Key);
 encode_key(Key) -> Key.
 
 encode_string(Bin) when is_binary(Bin) ->
