@@ -8,14 +8,14 @@ config_test_() ->
      fun cleanup_config/1,
      {inorder, [ {timeout, 120,
                   {"encode", fun() -> test_encode({e,n,c}) end}},
-                [ {timeout, 120,
-                   {atom_to_list(Name),
-                    fun() -> test_opts(Data) end}} ||
-                    {Name,_,_,_} = Data <- maps_with_opts()]
-                 ++ [ {timeout, 120,
-                       {atom_to_list(Name),
-                        fun() -> test_decode(Data) end}} ||
-                        {Name,_,_} = Data <- json_strings_should_pass()]]}}.
+                 [ {timeout, 120,
+                    {atom_to_list(Name),
+                     fun() -> test_opts(Data) end}} ||
+                     {Name,_,_,_} = Data <- maps_with_opts()],
+                 [ {timeout, 120,
+                    {atom_to_list(Name),
+                     fun() -> test_decode(Data) end}} ||
+                     {Name,_,_} = Data <- json_strings_should_pass()]]}}.
 
 setup_config() -> ok.
 cleanup_config(_) -> ok.
