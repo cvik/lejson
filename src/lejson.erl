@@ -23,7 +23,8 @@
                      | number() | binary() | json_object() | json_array().
 -type json_object() :: #{json_key() => json_value()}.
 -type json_array()  :: [json_value()].
--type json_opts()   :: #{'keys' => 'atom' | 'existing_atom' | 'list'}.
+-type json_opts()   :: #{'keys' => 'atom' | 'existing_atom' | 'list' |
+                         'integer_and_atom' }.
 
 %% Encode ---------------------------------------------------------------------
 
