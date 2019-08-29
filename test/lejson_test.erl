@@ -7,11 +7,15 @@ config_test_() ->
      fun setup_config/0,
      fun cleanup_config/1,
      {inorder, [ {timeout, 120,
-                  {"encode", fun() -> test_encode({e,n,c}) end}} |
+                  {"encode", fun() -> test_encode({e,n,c}) end}},
                 [ {timeout, 120,
-                  {atom_to_list(Name),
-                   fun() -> test_decode(Data) end}} ||
-                  {Name,_,_} = Data <- json_strings_should_pass()]]}}.
+                   {atom_to_list(Name),
+                    fun() -> test_opts(Data) end}} ||
+                    {Name,_,_,_} = Data <- maps_with_opts()]
+                 ++ [ {timeout, 120,
+                       {atom_to_list(Name),
+                        fun() -> test_decode(Data) end}} ||
+                        {Name,_,_} = Data <- json_strings_should_pass()]]}}.
 
 setup_config() -> ok.
 cleanup_config(_) -> ok.
@@ -82,8 +86,15 @@ json_strings_should_pass() ->
       <<"{\"escaped_string\": \"\\t\\n\\r\\f\\b\\\\\\/\\\"\"}">>,
       #{<<"escaped_string">> => <<"\t\n\r\f\b\\/\"">>}}].
 
+maps_with_opts() ->
+    [{integer_as_key,
+      <<"{\"256\": 1}">>,
+      #{256 => 1}, #{keys => integer_and_atom}}].
+
 test_decode({_Type, Data, Expected}) ->
-    ?assertEqual(Expected, lejson:decode(Data)).
+    ?assertEqual(Expected, lejson:decode(Data));
+test_decode({_Type, Data, Expected, Opts}) ->
+    ?assertEqual(Expected, lejson:decode(Data, Opts)).
 
 test_encode({_Type, _Data, _Expected}) ->
     test_encode_decode(simple_json()).
@@ -107,4 +118,10 @@ simple_json() ->
       "\"array\": [{\"object_inside_array\": 1}],"
       "\"nested_array\": [[[79]]],"
       "\"another_array\": [1,2,3,[1,[2],3],12]}">>.
+
+test_opts({_Type, ExpectedJson, Map, Opts}) ->
+    Json = lejson:encode(Map),
+    NewMap = lejson:decode(Json, Opts),
+    Json == ExpectedJson andalso
+        Map == NewMap.
 
