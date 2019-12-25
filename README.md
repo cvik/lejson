@@ -12,7 +12,8 @@ to keep with the standard (rfc4627). Encoding is also compatible with rfc8259.
                      | number() | binary() | json_object() | json_array().
 -type json_object() :: #{json_key() => json_value()}.
 -type json_array()  :: [json_value()].
--type json_opts()   :: #{'keys' => 'atom' | 'existing_atom' | 'list'}.
+-type json_opts()   :: #{'keys' => 'atom' | 'existing_atom' | 'list' |
+                         'integet_and_atom'}.
 
 -spec lejson:decode(iodata()) -> json_object() | json_array() | {error, not_json}.
 -spec lejson:decode(iodata(), json_opts()) ->
