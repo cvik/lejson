@@ -23,7 +23,8 @@
                      | number() | binary() | json_object() | json_array().
 -type json_object() :: #{json_key() => json_value()}.
 -type json_array()  :: [json_value()].
--type json_opts()   :: #{'keys' => 'atom' | 'existing_atom' | 'list'}.
+-type json_opts()   :: #{'keys' => 'atom' | 'existing_atom' | 'list' |
+                         'integer_and_atom' }.
 
 %% Encode ---------------------------------------------------------------------
 
@@ -52,6 +53,7 @@ encode_value(#{} = Map) -> encode_map(Map);
 encode_value(Array) when is_list(Array) -> encode_array(Array).
 
 encode_key(Key) when is_atom(Key) -> atom_to_binary(Key, utf8);
+encode_key(Key) when is_integer(Key) -> integer_to_binary(Key);
 encode_key(Key) -> Key.
 
 encode_string(Bin) when is_binary(Bin) ->
@@ -257,4 +259,9 @@ is_json(_) -> false.
 convert_key(Key, #{keys:=atom}) -> binary_to_atom(Key, utf8);
 convert_key(Key, #{keys:=existing_atom}) -> binary_to_existing_atom(Key, utf8);
 convert_key(Key, #{keys:=list}) -> binary_to_list(Key);
+convert_key(Key, #{keys:=integer_and_atom}) ->
+    try binary_to_integer(Key)
+    catch
+        _:_ -> binary_to_atom(Key, utf8)
+    end;
 convert_key(Key, #{}) -> Key.
